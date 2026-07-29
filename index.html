@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal Drive & Dokumen Kelas - Protected Viewer</title>
+    <meta name="theme-color" content="#f59e0b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Portal Drive & Dokumen Kelas - Protected Viewer & SMART Tasks</title>
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -44,7 +47,6 @@
     </script>
 
     <style>
-        /* Anti-Copy and Context Menu Protection */
         .protected-view {
             -webkit-touch-callout: none;
             -webkit-user-select: none;
@@ -54,18 +56,56 @@
             user-select: none;
         }
 
-        /* Prevent frame download button overlay */
         .iframe-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
-            height: 52px; /* Blocks top toolbar with popout/download buttons */
+            height: 52px;
             background: transparent;
             z-index: 10;
         }
 
-        /* Custom Scrollbars */
+        /* Dynamic Security Watermark Overlay */
+        .watermark-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 20;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: space-around;
+            justify-content: space-around;
+            overflow: hidden;
+            opacity: 0.18;
+            user-select: none;
+        }
+
+        .watermark-text {
+            transform: rotate(-25deg);
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: #ffffff;
+            text-shadow: 0 0 3px #000;
+            padding: 2rem;
+            white-space: nowrap;
+        }
+
+        /* Rich Editor Styles */
+        .editor-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.75rem;
+            margin: 0.75rem 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .editor-content h1 { font-size: 1.5rem; font-weight: 800; margin-top: 1rem; margin-bottom: 0.5rem; color: #1e293b; }
+        .editor-content h2 { font-size: 1.25rem; font-weight: 700; margin-top: 0.85rem; margin-bottom: 0.4rem; color: #334155; }
+        .editor-content ul { list-style-type: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
+        .editor-content ol { list-style-type: decimal; padding-left: 1.5rem; margin: 0.5rem 0; }
+        .editor-content blockquote { border-left: 4px solid #f59e0b; padding-left: 1rem; color: #475569; font-style: italic; margin: 0.75rem 0; }
+        .editor-content code { background-color: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-family: monospace; font-size: 0.875em; }
+
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -82,8 +122,17 @@
         }
 
         @media print {
-            body {
-                display: none !important;
+            body * {
+                visibility: hidden;
+            }
+            #admin-panel-logs, #admin-panel-logs * {
+                visibility: visible;
+            }
+            #admin-panel-logs {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
             }
         }
     </style>
@@ -92,26 +141,26 @@
 
     <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
 
-    <!-- MAIN APP CONTAINER -->
-    <div id="app" class="min-h-screen flex flex-col">
+    <div id="app-container" class="min-h-screen flex flex-col">
 
+        <!-- HEADER BANNER -->
         <header class="bg-gradient-to-r from-citrus-500 via-amber-500 to-skycyan-500 text-white shadow-md sticky top-0 z-30">
-            <div class="max-w-7xl mx-mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                 <div class="flex items-center space-x-3 cursor-pointer" onclick="app.navigateTo('landing')">
                     <div class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-bold text-xl border border-white/30 shadow-inner">
                         <i class="fa-solid fa-folder-closed text-citrus-100"></i>
                     </div>
                     <div>
-                        <h1 class="font-extrabold text-lg sm:text-xl tracking-tight leading-none text-white">EduDrive Viewer</h1>
-                        <p class="text-xs text-citrus-100 font-medium opacity-90">Portal Dokumen & Modul Kelas</p>
+                        <h1 id="app-header-title" class="font-extrabold text-lg sm:text-xl tracking-tight leading-none text-white">EduDrive Viewer</h1>
+                        <p class="text-xs text-citrus-100 font-medium opacity-90">Portal Dokumen & Tugas Kelas (SMART Features)</p>
                     </div>
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <button id="quick-admin-btn" onclick="app.quickAdminLogin()" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-all text-white border border-white/20 shadow-sm">
-                        <i class="fa-solid fa-bolt text-yellow-300"></i>
-                        <span>Akses Cepat Admin</span>
-                    </button>
+                    <div id="pwa-install-badge" class="hidden items-center gap-1.5 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-sm border border-white/30 cursor-pointer transition" onclick="app.installPWA()">
+                        <i class="fa-solid fa-download text-amber-200"></i>
+                        <span>Install App</span>
+                    </div>
                     <div id="user-badge" class="hidden items-center gap-2 bg-black/20 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm border border-white/10">
                         <span id="user-badge-name" class="text-amber-200">Siswa</span>
                         <button onclick="app.logout()" class="ml-1 text-white hover:text-red-300 transition" title="Keluar">
@@ -122,38 +171,30 @@
             </div>
         </header>
 
-        <main id="view-landing" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <!-- App Explanation Hero Banner -->
-            <div class="bg-white rounded-3xl p-6 sm:p-10 shadow-xl border border-slate-100 mb-8 relative overflow-hidden">
-                <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-amber-100/50 rounded-full blur-3xl pointer-events-none"></div>
-                <div class="absolute -left-10 -top-10 w-64 h-64 bg-cyan-100/50 rounded-full blur-3xl pointer-events-none"></div>
-                
-                <div class="relative z-10 grid md:grid-cols-12 gap-8 items-center">
-                    <div class="md:col-span-7 space-y-4">
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
-                            <i class="fa-solid fa-shield-halved"></i> Modul Terproteksi & Aman
-                        </span>
-                        <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                            Akses Materi Kelas & Dokumen Pembelajaran Digital
-                        </h2>
-                        <p class="text-slate-600 text-sm sm:text-base leading-relaxed">
-                            Selamat datang di Portal Materi Pembelajaran. Siswa dapat melihat dan mempelajari file presentasi, PDF, serta modul materi kelas langsung di browser tanpa perlu mengunduh file. Masukkan PIN Akses Kelas Anda untuk memulai.
-                        </p>
-                        <div class="flex flex-wrap gap-4 pt-2 text-xs font-semibold text-slate-500">
-                            <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-emerald-500"></i> No-Download Security</div>
-                            <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-emerald-500"></i> Notifikasi Tugas Aktif</div>
-                            <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-emerald-500"></i> Akses Folder Cepat</div>
-                        </div>
-                    </div>
+        <main id="view-landing" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10">
+            <div class="grid lg:grid-cols-12 gap-8 items-center">
+                <div class="lg:col-span-7 space-y-4">
+                    <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 shadow-sm">
+                        <i class="fa-solid fa-shield-halved text-citrus-600"></i> Dynamic Security & SMART Portal
+                    </span>
+                    <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+                        Akses Dokumen & Tugas Kelas <br class="hidden sm:inline"/>
+                        <span class="bg-gradient-to-r from-citrus-600 to-amber-500 bg-clip-text text-transparent">Aman, Terproteksi & Terukur</span>
+                    </h2>
+                    <p class="text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl">
+                        Selamat datang di portal pembelajaran terintegrasi. Dilengkapi dengan **Watermark Dinamis Anti-Screenshot (S)**, **Form Upload Jawaban langsung (S)**, dan **Auto Countdown Deadline Presisi (T)**.
+                    </p>
+                </div>
 
-                    <div class="md:col-span-5 bg-gradient-to-br from-slate-50 to-amber-50/40 p-6 rounded-2xl border border-amber-200/60 shadow-lg">
-                        <!-- Login Tabs -->
-                        <div class="flex bg-slate-200/70 p-1 rounded-xl mb-6">
-                            <button id="tab-btn-pin" onclick="app.switchTab('pin')" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-citrus-700 shadow-sm">
-                                <i class="fa-solid fa-key mr-1"></i> Akses PIN Kelas
+                <div class="lg:col-span-5">
+                    <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-100 space-y-6">
+                        <!-- Auth Mode Switch Tabs -->
+                        <div class="flex p-1 bg-slate-100 rounded-2xl">
+                            <button id="tab-btn-pin" onclick="app.switchAuthTab('pin')" class="flex-1 py-2.5 text-xs font-bold rounded-xl transition-all shadow bg-white text-citrus-600">
+                                <i class="fa-solid fa-key mr-1.5"></i> PIN Akses Kelas
                             </button>
-                            <button id="tab-btn-admin" onclick="app.switchTab('admin')" class="flex-1 py-2 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 transition-all">
-                                <i class="fa-solid fa-user-shield mr-1"></i> Admin Portal
+                            <button id="tab-btn-admin" onclick="app.switchAuthTab('admin')" class="flex-1 py-2.5 text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800">
+                                <i class="fa-solid fa-user-shield mr-1.5"></i> Admin Portal
                             </button>
                         </div>
 
@@ -162,18 +203,27 @@
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 mb-1">Kode PIN Akses Kelas</label>
                                 <div class="relative">
-                                    <input type="password" id="input-pin" maxlength="10" placeholder="Masukkan Kode PIN (Default: 011211)" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-citrus-500 focus:border-citrus-500 text-center text-lg font-mono font-bold tracking-widest text-slate-800 bg-white shadow-inner">
+                                    <input type="password" id="input-pin" maxlength="10" placeholder="Masukkan PIN (Contoh: 011211)" oninput="app.onPinInputChanged()" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-citrus-500 focus:border-citrus-500 text-center text-lg font-mono font-bold tracking-widest text-slate-800 bg-white shadow-inner">
                                     <button onclick="app.togglePinVisibility()" class="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600">
                                         <i id="pin-eye-icon" class="fa-solid fa-eye"></i>
                                     </button>
                                 </div>
                             </div>
+
+                            <!-- Dynamic Student Selection Roster -->
+                            <div id="student-select-wrapper" class="hidden">
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Pilih Nama Siswa Terdata</label>
+                                <select id="input-student-name" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-citrus-500 text-xs font-semibold text-slate-800 bg-white">
+                                    <option value="">-- Pilih Nama Anda --</option>
+                                </select>
+                            </div>
+
                             <button onclick="app.loginWithPin()" class="w-full py-3 bg-gradient-to-r from-citrus-500 to-amber-500 hover:from-citrus-600 hover:to-amber-600 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
-                                <span>Buka Folder Kelas</span>
+                                <span>Masuk Pembelajaran Kelas</span>
                                 <i class="fa-solid fa-arrow-right"></i>
                             </button>
                             <p class="text-[11px] text-center text-slate-500">
-                                Hubungi wali kelas jika belum menerima Kode PIN.
+                                Masukkan PIN kelas (Contoh: <code class="font-bold text-citrus-600">011211</code>) untuk memuat daftar siswa.
                             </p>
                         </div>
 
@@ -181,48 +231,48 @@
                         <div id="form-admin-container" class="space-y-4 hidden">
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 mb-1">Username Admin</label>
-                                <input type="text" id="input-admin-user" placeholder="Admin" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-skycyan-500 text-sm font-medium">
+                                <input type="text" id="input-admin-user" value="Admin" placeholder="Admin" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-skycyan-500 text-sm font-medium">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 mb-1">Password</label>
-                                <input type="password" id="input-admin-pass" placeholder="sarjanasoft" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-skycyan-500 text-sm font-medium">
+                                <input type="password" id="input-admin-pass" value="sarjanasoft" placeholder="sarjanasoft" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-skycyan-500 text-sm font-medium">
                             </div>
                             <button onclick="app.loginAdmin()" class="w-full py-2.5 bg-gradient-to-r from-skycyan-600 to-teal-600 hover:from-skycyan-700 hover:to-teal-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-sm">
                                 <i class="fa-solid fa-right-to-bracket"></i>
-                                <span>Masuk Dashboard</span>
+                                <span>Masuk Dashboard Admin</span>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Features Grid -->
+            <!-- Features Grid SMART -->
             <div class="grid sm:grid-cols-3 gap-6">
                 <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
                     <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl shrink-0">
-                        <i class="fa-solid fa-eye-slash"></i>
+                        <i class="fa-solid fa-fingerprint"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-slate-800 text-sm">Proteksi Hak Cipta</h3>
-                        <p class="text-xs text-slate-500 mt-1">Dokumen hanya dapat dibaca secara langsung, tombol simpan & unduh dinonaktifkan.</p>
+                        <h3 class="font-bold text-slate-800 text-sm">[S] Watermark Dinamis</h3>
+                        <p class="text-xs text-slate-500 mt-1">Watermark otomatis memuat Nama Siswa + PIN di atas PDF untuk cegah screenshot ilegal.</p>
                     </div>
                 </div>
                 <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
                     <div class="w-12 h-12 rounded-xl bg-cyan-100 text-cyan-600 flex items-center justify-center text-xl shrink-0">
-                        <i class="fa-solid fa-bell"></i>
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-slate-800 text-sm">Notifikasi Tugas Kelas</h3>
-                        <p class="text-xs text-slate-500 mt-1">Info instan mengenai ketersediaan tugas atau instruksi dari pengajar saat ini.</p>
+                        <h3 class="font-bold text-slate-800 text-sm">[S] Upload Jawaban Siswa</h3>
+                        <p class="text-xs text-slate-500 mt-1">Siswa dapat langsung mengunggah foto/link file jawaban tugas dari dalam portal.</p>
                     </div>
                 </div>
                 <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
                     <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shrink-0">
-                        <i class="fa-solid fa-mobile-screen-button"></i>
+                        <i class="fa-solid fa-hourglass-half"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-slate-800 text-sm">Responsif & PWA Ready</h3>
-                        <p class="text-xs text-slate-500 mt-1">Dapat diakses lancar di Smartphone, Tablet, maupun Laptop dengan cepat.</p>
+                        <h3 class="font-bold text-slate-800 text-sm">[T] Auto Countdown Lock</h3>
+                        <p class="text-xs text-slate-500 mt-1">Timer hitung mundur real-time. Tombol pengiriman terkunci otomatis jika waktu habis.</p>
                     </div>
                 </div>
             </div>
@@ -243,19 +293,31 @@
                 </div>
                 <button onclick="app.logout()" class="self-start md:self-auto px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition flex items-center gap-2">
                     <i class="fa-solid fa-arrow-left"></i>
-                    <span>Kembali ke Utam</span>
+                    <span>Keluar / Ganti PIN</span>
                 </button>
             </div>
 
-            <!-- Task Alert Banner -->
-            <div id="task-notification-banner" class="mb-8 rounded-2xl p-4 shadow-sm border flex items-center gap-4 transition-all bg-amber-50 border-amber-200 text-amber-900">
-                <div id="task-icon-bg" class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 text-lg shadow-md">
-                    <i id="task-icon" class="fa-solid fa-bullhorn"></i>
+            <!-- Task Alert Banner with SMART Real-Time Countdown Timer -->
+            <div id="task-notification-banner" class="mb-8 rounded-2xl p-5 shadow-sm border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all bg-amber-50 border-amber-200 text-amber-900">
+                <div class="flex items-start sm:items-center gap-4">
+                    <div id="task-icon-bg" class="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 text-xl shadow-md">
+                        <i id="task-icon" class="fa-solid fa-bullhorn"></i>
+                    </div>
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <h4 id="task-banner-status" class="font-extrabold text-base">Info Tugas Kelas:</h4>
+                            <!-- Realtime Countdown Timer Badge -->
+                            <span id="task-banner-countdown" class="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-amber-200 text-amber-900 border border-amber-300">
+                                ⏱️ Hitung Mundur: --:--:--
+                            </span>
+                        </div>
+                        <p id="task-banner-summary" class="text-xs text-amber-800 mt-1 line-clamp-1">Ada tugas aktif dari pengajar. Klik tombol di kanan untuk membaca petunjuk dan mengunggah jawaban.</p>
+                    </div>
                 </div>
-                <div class="flex-1">
-                    <h4 id="task-banner-status" class="font-bold text-sm">Info Tugas Kelas:</h4>
-                    <p id="task-banner-detail" class="text-xs mt-0.5">Ada Tugas: Kerjakan Latihan Bab 3 Sebelum 10 Agustus</p>
-                </div>
+                <button id="btn-open-task-detail" onclick="app.openTaskModal()" class="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-amber-500 to-citrus-600 hover:from-amber-600 hover:to-citrus-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 shrink-0">
+                    <i class="fa-solid fa-list-check text-sm"></i>
+                    <span>Buka & Kirim Tugas</span>
+                </button>
             </div>
 
             <!-- Drive File Grid -->
@@ -290,9 +352,13 @@
                             <i class="fa-solid fa-chalkboard-user w-4 text-center"></i>
                             <span>Kelola Kelas & PIN</span>
                         </button>
+                        <button onclick="app.switchAdminTab('logs')" id="admin-nav-logs" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-white hover:bg-slate-800">
+                            <i class="fa-solid fa-user-clock w-4 text-center"></i>
+                            <span>Presensi & Jawaban Siswa</span>
+                        </button>
                         <button onclick="app.switchAdminTab('tasks')" id="admin-nav-tasks" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-white hover:bg-slate-800">
-                            <i class="fa-solid fa-list-check w-4 text-center"></i>
-                            <span>Status & Info Tugas</span>
+                            <i class="fa-solid fa-pen-ruler w-4 text-center"></i>
+                            <span>Buat & Kelola Tugas</span>
                         </button>
                         <button onclick="app.switchAdminTab('config')" id="admin-nav-config" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-white hover:bg-slate-800">
                             <i class="fa-solid fa-sliders w-4 text-center"></i>
@@ -301,62 +367,53 @@
                     </nav>
                 </div>
 
-                <div class="pt-6 border-t border-slate-800 space-y-2">
-                    <button onclick="app.logout()" class="w-full flex items-center justify-center gap-2 py-2 px-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-xs font-bold transition border border-red-500/20">
+                <div class="pt-4 border-t border-slate-800">
+                    <button onclick="app.logout()" class="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-red-400 hover:bg-red-500/10 transition">
                         <i class="fa-solid fa-power-off"></i>
                         <span>Keluar Admin</span>
                     </button>
                 </div>
             </aside>
 
-            <!-- Admin Content Area -->
-            <div class="flex-1 bg-slate-100 p-4 sm:p-8 overflow-y-auto">
-                <!-- Admin Top Widgets / Stat Cards -->
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-lg font-bold">
-                            <i class="fa-solid fa-school"></i>
-                        </div>
-                        <div>
-                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Kelas</p>
-                            <h4 id="stat-class-count" class="text-xl font-extrabold text-slate-800">2</h4>
-                        </div>
-                    </div>
-                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-600 flex items-center justify-center text-lg font-bold">
-                            <i class="fa-solid fa-file-pdf"></i>
-                        </div>
-                        <div>
-                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Dokumen Drive</p>
-                            <h4 id="stat-file-count" class="text-xl font-extrabold text-slate-800">4</h4>
-                        </div>
-                    </div>
-                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg font-bold">
-                            <i class="fa-solid fa-circle-check"></i>
-                        </div>
-                        <div>
-                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tugas Aktif</p>
-                            <h4 id="stat-active-tasks" class="text-xl font-extrabold text-slate-800">1</h4>
-                        </div>
-                    </div>
-                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-lg font-bold">
-                            <i class="fa-solid fa-database"></i>
-                        </div>
-                        <div>
-                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Backend GAS</p>
-                            <h4 id="stat-gas-status" class="text-xs font-extrabold text-emerald-600">Terhubung (Mock)</h4>
-                        </div>
-                    </div>
-                </div>
-
+            <!-- Main Admin Content Area -->
+            <div class="flex-1 bg-slate-100 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+                <!-- Admin Panel: Classes -->
                 <div id="admin-panel-classes" class="space-y-6">
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                            <div>
+                                <p class="text-xs text-slate-500 font-medium">Total Kelas</p>
+                                <h4 id="stat-class-count" class="text-2xl font-black text-slate-800 mt-1">0</h4>
+                            </div>
+                            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-school"></i>
+                            </div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                            <div>
+                                <p class="text-xs text-slate-500 font-medium">Total Dokumen Drive</p>
+                                <h4 id="stat-file-count" class="text-2xl font-black text-slate-800 mt-1">0</h4>
+                            </div>
+                            <div class="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-600 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-file-pdf"></i>
+                            </div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                            <div>
+                                <p class="text-xs text-slate-500 font-medium">Siswa Terdata</p>
+                                <h4 id="stat-student-count" class="text-2xl font-black text-slate-800 mt-1">0</h4>
+                            </div>
+                            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-users"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
                                 <h3 class="font-extrabold text-slate-800 text-lg">Daftar Kelas & PIN Akses</h3>
-                                <p class="text-xs text-slate-500">Atur PIN unik dan tautan file/folder Google Drive untuk masing-masing kelas.</p>
+                                <p class="text-xs text-slate-500">Kelola folder materi, PIN siswa, dan roster nama siswa terdaftar.</p>
                             </div>
                             <button onclick="app.openClassModal()" class="px-4 py-2 bg-citrus-500 hover:bg-citrus-600 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-2">
                                 <i class="fa-solid fa-plus"></i>
@@ -369,54 +426,154 @@
                                 <thead class="bg-slate-50 text-slate-500 uppercase font-bold border-b border-slate-200">
                                     <tr>
                                         <th class="p-3">Nama Kelas</th>
-                                        <th class="p-3">PIN Akses</th>
+                                        <th class="p-3">PIN</th>
+                                        <th class="p-3">Siswa Terdata</th>
                                         <th class="p-3">Jumlah Dokumen</th>
                                         <th class="p-3">Status Tugas</th>
-                                        <th class="p-3 text-center">Aksi</th>
+                                        <th class="p-3 text-right">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody id="table-class-body" class="divide-y divide-slate-100">
-                                    <!-- Dynamic rows -->
+                                <tbody id="table-classes-body" class="divide-y divide-slate-100">
+                                    <!-- Dynamic Rows -->
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <div id="admin-panel-tasks" class="space-y-6 hidden">
+                <!-- Admin Panel: Logs & Submissions -->
+                <div id="admin-panel-logs" class="space-y-6 hidden">
                     <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                        <h3 class="font-extrabold text-slate-800 text-lg mb-1">Pengaturan Info / Status Tugas</h3>
-                        <p class="text-xs text-slate-500 mb-6">Ubah notifikasi tugas yang akan tampil saat siswa memasukkan PIN kelas.</p>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                            <div>
+                                <h3 class="font-extrabold text-slate-800 text-lg">Rekap Presensi, Tracking & Kiriman Jawaban Siswa</h3>
+                                <p class="text-xs text-slate-500">Mencatat aktivitas siswa: Login, progres membaca dokumen, serta link unggahan jawaban tugas.</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="window.print()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
+                                    <i class="fa-solid fa-print"></i>
+                                    <span>Cetak Laporan</span>
+                                </button>
+                                <button onclick="app.clearLogs()" class="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 font-bold text-xs rounded-xl transition flex items-center gap-1.5">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                    <span>Bersihkan Log</span>
+                                </button>
+                            </div>
+                        </div>
 
-                        <form onsubmit="app.saveTaskSetting(event)" class="space-y-4 max-w-xl">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 mb-1">Pilih Kelas</label>
-                                <select id="task-select-class" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-citrus-500">
-                                    <!-- Options filled dynamically -->
-                                </select>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-50 text-slate-500 uppercase font-bold border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-3">Waktu Login</th>
+                                        <th class="p-3">Nama Siswa</th>
+                                        <th class="p-3">Kelas</th>
+                                        <th class="p-3">Aktivitas / Dokumen</th>
+                                        <th class="p-3">Status Read / Submission</th>
+                                        <th class="p-3">Tautan Jawaban</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-log-body" class="divide-y divide-slate-100">
+                                    <!-- Dynamic log rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Panel: Tasks -->
+                <div id="admin-panel-tasks" class="space-y-6 hidden">
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                        <div>
+                            <h3 class="font-extrabold text-slate-800 text-lg">Editor Pengetikan Lengkap & Batas Waktu SMART</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Atur tanggal dan jam tenggat presisi (Aturan T-Time Bound). Sistem akan mengunci form otomatis saat batas waktu tercapai.</p>
+                        </div>
+
+                        <form onsubmit="app.saveTaskSetting(event)" class="space-y-5">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Pilih Kelas Target</label>
+                                    <select id="task-select-class" onchange="app.onTaskClassSelected()" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-citrus-500">
+                                        <!-- Options filled dynamically -->
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Status Tugas</label>
+                                    <select id="task-select-status" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-citrus-500">
+                                        <option value="ADA">📢 Ada Tugas Aktif</option>
+                                        <option value="TIDAK">✅ Tidak Ada Tugas Saat Ini</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Batas Tanggal & Jam Tenggat (ISO/Format)</label>
+                                    <input type="datetime-local" id="task-input-deadline-picker" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-800">
+                                </div>
                             </div>
+
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 mb-1">Status Ketersediaan Tugas</label>
-                                <select id="task-select-status" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-citrus-500">
-                                    <option value="ADA">📢 Ada Tugas Aktif</option>
-                                    <option value="TIDAK">✅ Tidak Ada Tugas Saat Ini</option>
-                                </select>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Judul Tugas</label>
+                                <input type="text" id="task-input-title" placeholder="Contoh: Latihan Soal Bab 3 & Analisis Gambar Aljabar" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-800">
                             </div>
+
+                            <!-- Template Quick Buttons -->
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 mb-1">Detail / Instuksi Tugas</label>
-                                <textarea id="task-input-detail" rows="3" placeholder="Contoh: Kerjakan Soal Latihan Bab 3 Halaman 45-50" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-citrus-500"></textarea>
+                                <label class="block text-xs font-bold text-slate-700 mb-1.5">Sisipkan Template Instan Guru:</label>
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="button" onclick="app.applyTaskTemplate('essay_image')" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-xs font-semibold transition">
+                                        <i class="fa-solid fa-image mr-1"></i> Soal Essay + Gambar
+                                    </button>
+                                    <button type="button" onclick="app.applyTaskTemplate('multiple_choice')" class="px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 rounded-lg text-xs font-semibold transition">
+                                        <i class="fa-solid fa-list-check mr-1"></i> Instruksi Latihan
+                                    </button>
+                                    <button type="button" onclick="app.applyTaskTemplate('project')" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold transition">
+                                        <i class="fa-solid fa-users mr-1"></i> Proyek Kelompok
+                                    </button>
+                                </div>
                             </div>
-                            <button type="submit" class="px-5 py-2.5 bg-skycyan-600 hover:bg-skycyan-700 text-white font-bold text-xs rounded-xl shadow transition">
-                                Simpan Perubahan Tugas
-                            </button>
+
+                            <!-- Rich Text Editor Bar -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Instruksi & Isi Tugas (Rich Text & Format Gambar)</label>
+                                <div class="border border-slate-300 rounded-2xl overflow-hidden bg-white shadow-sm">
+                                    <!-- Toolbar -->
+                                    <div class="bg-slate-100 p-2 border-b border-slate-200 flex flex-wrap items-center gap-1">
+                                        <button type="button" onclick="app.execEditorCommand('bold')" title="Cetak Tebal" class="p-2 hover:bg-slate-200 rounded text-slate-700 text-xs font-bold"><i class="fa-solid fa-bold"></i></button>
+                                        <button type="button" onclick="app.execEditorCommand('italic')" title="Cetak Miring" class="p-2 hover:bg-slate-200 rounded text-slate-700 text-xs"><i class="fa-solid fa-italic"></i></button>
+                                        <button type="button" onclick="app.execEditorCommand('underline')" title="Garis Bawah" class="p-2 hover:bg-slate-200 rounded text-slate-700 text-xs"><i class="fa-solid fa-underline"></i></button>
+                                        <div class="h-4 w-[1px] bg-slate-300 mx-1"></div>
+                                        <button type="button" onclick="app.execEditorCommand('formatBlock', 'H1')" title="Judul Besar (H1)" class="p-2 hover:bg-slate-200 rounded text-slate-700 text-xs font-bold">H1</button>
+                                        <button type="button" onclick="app.execEditorCommand('formatBlock', 'H2')" title="Sub Judul (H2)" class="p-2 hover:bg-slate-200 rounded text-slate-700 text-xs font-bold">H2</button>
+                                        <div class="h-4 w-[1px] bg-slate-300 mx-1"></div>
+                                        <button type="button" onclick="app.execEditorCommand('insertUnorderedList')" title="Daftar Bullet" class="p-2 hover:bg-slate-200 rounded text-slate-700 text-xs"><i class="fa-solid fa-list-ul"></i></button>
+                                        <button type="button" onclick="app.execEditorCommand('insertOrderedList')" title="Daftar Angka" class="p-2 hover:bg-slate-200 rounded text-slate-700 text-xs"><i class="fa-solid fa-list-ol"></i></button>
+                                        <div class="h-4 w-[1px] bg-slate-300 mx-1"></div>
+                                        <button type="button" onclick="app.insertImageUrlPrompt()" title="Sisipkan Gambar via Link URL" class="px-2.5 py-1.5 bg-citrus-500 hover:bg-citrus-600 text-white rounded text-xs font-bold flex items-center gap-1">
+                                            <i class="fa-solid fa-file-image"></i>
+                                            <span>+ Sisipkan Gambar</span>
+                                        </button>
+                                    </div>
+                                    <!-- ContentEditable Area -->
+                                    <div id="editor-task-detail" contenteditable="true" class="editor-content p-4 min-h-[220px] max-h-[400px] overflow-y-auto text-xs sm:text-sm text-slate-800 focus:outline-none">
+                                        <!-- Editable Content -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-end gap-2 pt-2">
+                                <button type="submit" class="px-6 py-3 bg-gradient-to-r from-citrus-500 to-amber-500 hover:from-citrus-600 hover:to-amber-600 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2">
+                                    <i class="fa-solid fa-floppy-disk"></i>
+                                    <span>Simpan & Terbitkan Tugas Ke Kelas</span>
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
 
+                <!-- Admin Panel: Config -->
                 <div id="admin-panel-config" class="space-y-6 hidden">
                     <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm max-w-2xl">
                         <h3 class="font-extrabold text-slate-800 text-lg mb-1">Konfigurasi Identitas Aplikasi</h3>
-                        <p class="text-xs text-slate-500 mb-6">Atur judul portal, pesan sambutan, dan integrasi Google Sheets.</p>
+                        <p class="text-xs text-slate-500 mb-6">Atur judul portal, password admin, dan integrasi Google Sheets.</p>
 
                         <form onsubmit="app.saveConfig(event)" class="space-y-4">
                             <div>
@@ -424,13 +581,13 @@
                                 <input type="text" id="config-app-title" value="EduDrive Viewer" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 mb-1">PIN Default Baru Admin (Opsional)</label>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Password Admin</label>
                                 <input type="text" id="config-admin-pass" value="sarjanasoft" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 mb-1">Status Koneksi Database Google Sheets</label>
                                 <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 font-mono">
-                                    Spreadsheet Backend: Active (Direct GAS API Mode)
+                                    Spreadsheet Backend: Active (GAS Mode Enabled)
                                 </div>
                             </div>
                             <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition">
@@ -444,19 +601,19 @@
 
         <!-- Footer -->
         <footer class="bg-white border-t border-slate-200 py-4 px-4 text-center text-xs text-slate-500">
-            <p>© 2026 Web Builder Pro-Sarjanasoft. Powered by Google Apps Script & Google Sheets.</p>
+            <p>© 2026 Web Builder Pro-Sarjanasoft. Integrated SMART Framework Features.</p>
         </footer>
     </div>
 
+    <!-- DOCUMENT PROTECTED VIEWER MODAL WITH DYNAMIC WATERMARK -->
     <div id="doc-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm hidden p-2 sm:p-6">
         <div class="bg-white w-full max-w-5xl h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
-            <!-- Modal Header -->
             <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
                 <div class="flex items-center gap-3">
                     <i class="fa-solid fa-file-pdf text-amber-400 text-xl"></i>
                     <div>
                         <h3 id="modal-doc-title" class="font-bold text-sm text-white">Dokumen Pembelajaran.pdf</h3>
-                        <span class="text-[10px] text-emerald-400 font-medium">Mode Pembaca Terproteksi (No Download)</span>
+                        <span id="scroll-status-badge" class="text-[10px] text-amber-400 font-medium">⏳ Membaca... (Scroll ke bawah sampai akhir)</span>
                     </div>
                 </div>
                 <button onclick="app.closeDocModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition">
@@ -464,38 +621,127 @@
                 </button>
             </div>
 
-            <!-- Modal Viewer Body -->
-            <div class="flex-1 relative bg-slate-800 overflow-hidden">
-                <!-- Transparent Overlay to block popout / direct download links on Google Drive Iframe -->
+            <div id="modal-viewer-scrollable" onscroll="app.handleViewerScroll(this)" class="flex-1 relative bg-slate-800 overflow-y-auto">
                 <div class="iframe-overlay"></div>
-                <iframe id="doc-iframe" src="" class="w-full h-full border-none" allow="autoplay"></iframe>
+                <!-- Dynamic Security Watermark Overlay -->
+                <div id="doc-watermark-overlay" class="watermark-overlay">
+                    <!-- Repeated dynamically in JS -->
+                </div>
+                <iframe id="doc-iframe" src="" class="w-full min-h-[1200px] border-none" allow="autoplay"></iframe>
             </div>
 
-            <!-- Modal Footer -->
-            <div class="px-6 py-3 bg-slate-100 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
-                <span class="flex items-center gap-1.5"><i class="fa-solid fa-lock text-citrus-600"></i> Klik kanan & pengunduhan berkas dinonaktifkan</span>
+            <div class="px-6 py-3 bg-slate-100 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-600 gap-2">
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <i class="fa-solid fa-eye text-citrus-600"></i>
+                    <span id="scroll-progress-text">Progres Membaca: 0%</span>
+                    <div class="w-32 bg-slate-300 rounded-full h-2 overflow-hidden">
+                        <div id="scroll-progress-bar" class="bg-amber-500 h-full w-0 transition-all"></div>
+                    </div>
+                </div>
                 <button onclick="app.closeDocModal()" class="px-4 py-1.5 bg-slate-800 text-white font-bold rounded-lg text-xs hover:bg-slate-700">Tutup Viewer</button>
             </div>
         </div>
     </div>
 
+    <!-- STUDENT TASK DETAIL & UPLOAD JAWABAN MODAL -->
+    <div id="task-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm hidden p-3 sm:p-6">
+        <div class="bg-white w-full max-w-3xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 bg-gradient-to-r from-amber-500 to-citrus-600 text-white flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-list-check text-amber-100"></i>
+                    </div>
+                    <div>
+                        <h3 id="modal-task-header-title" class="font-extrabold text-base text-white">Lembar Tugas & Form Jawaban Siswa</h3>
+                        <p id="modal-task-header-sub" class="text-xs text-amber-100 font-medium">Kelas X IPA 1 - Matematika & IPA</p>
+                    </div>
+                </div>
+                <button onclick="app.closeTaskModal()" class="w-8 h-8 rounded-full bg-black/20 hover:bg-black/30 text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content Body -->
+            <div class="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-50">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                        <h4 id="modal-task-title" class="font-black text-slate-800 text-lg">Latihan Soal Bab 3 & Analisis Gambar</h4>
+                        <!-- Real-time Modal Countdown -->
+                        <span id="modal-task-deadline-badge" class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                            ⏱️ Tenggat: ...
+                        </span>
+                    </div>
+
+                    <!-- Rendered Rich Text Task Content -->
+                    <div id="modal-task-body-content" class="editor-content text-xs sm:text-sm text-slate-700 leading-relaxed pt-2">
+                        <!-- Task Detail HTML -->
+                    </div>
+                </div>
+
+                <!-- [S - Specific] Form Upload Jawaban Siswa -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <h4 class="font-extrabold text-slate-800 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up text-citrus-500"></i>
+                        <span>[S] Form Kirim Jawaban Siswa</span>
+                    </h4>
+                    
+                    <div id="task-upload-form" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Link File Drive / Foto Jawaban (Atau Tempel Tautan Berkas)</label>
+                            <input type="url" id="input-submission-url" placeholder="https://drive.google.com/file/d/... atau Tautan Foto Jawaban" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Catatan Tambahan (Opsional)</label>
+                            <textarea id="input-submission-note" rows="2" placeholder="Tuliskan catatan singkat kepada pengajar..." class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs"></textarea>
+                        </div>
+                        <button id="btn-submit-assignment" onclick="app.submitStudentTask()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>Kirimkan Jawaban Saya</span>
+                        </button>
+                    </div>
+
+                    <!-- Lock Notice Banner if Deadline Passed -->
+                    <div id="task-locked-banner" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-bold text-center">
+                        🔒 Waktu Tenggat Pengerjaan Telah Habis. Pengiriman Jawaban Ditutup Secara Otomatis.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 bg-white border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="flex items-center gap-2 text-xs text-slate-500">
+                    <i class="fa-solid fa-circle-info text-citrus-500"></i>
+                    <span>Siswa: <strong id="modal-student-display-name">Siswa</strong></span>
+                </div>
+                <button onclick="app.closeTaskModal()" class="w-full sm:w-auto px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow transition">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CLASS EDIT/ADD MODAL -->
     <div id="class-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
-        <div class="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 border border-slate-200">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 border border-slate-200 max-h-[90vh] overflow-y-auto">
             <h3 id="class-modal-title" class="font-extrabold text-slate-800 text-lg mb-4">Tambah Kelas Baru</h3>
             <form onsubmit="app.saveClassForm(event)" class="space-y-4">
                 <input type="hidden" id="class-form-index" value="-1">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">Nama Kelas</label>
-                    <input type="text" id="class-form-name" required placeholder="Contoh: XII IPA 2 - Fisika" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs">
+                    <input type="text" id="class-form-name" required placeholder="Contoh: X IPA 1 - Matematika" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">PIN Akses Siswa (4-10 Digit)</label>
                     <input type="text" id="class-form-pin" required placeholder="011211" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono">
                 </div>
                 <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Daftar Nama Siswa Terdata (Satu Nama per Baris)</label>
+                    <textarea id="class-form-students" rows="3" placeholder="Ahmad Rizal&#10;Budi Santoso&#10;Citra Dewi" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono"></textarea>
+                </div>
+                <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">Daftar Link File Drive (Pisahkan dengan Baris Baru)</label>
-                    <textarea id="class-form-files" rows="4" placeholder="Contoh:&#10;https://drive.google.com/file/d/12345/view | Modul Bab 1&#10;https://drive.google.com/file/d/67890/view | Latihan Soal" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono"></textarea>
-                    <p class="text-[10px] text-slate-400 mt-1">Format: `URL_DRIVE | NAMA_DOKUMEN`</p>
+                    <textarea id="class-form-files" rows="3" placeholder="https://drive.google.com/file/d/12345/view | Modul Bab 1" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono"></textarea>
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="app.closeClassModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold">Batal</button>
@@ -506,8 +752,11 @@
     </div>
 
     <script>
-        // MANDATORY CONSTANT - DO NOT REMOVE
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbyuonl0Co7tLdyGTKN7XyXgFpAW8xRcsrEmX8emHSp_-vLGLtSC_v0dXjCr4aAQWoXN/exec";
+        // MANDATORY CONSTANT - BACKEND GAS URL
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwtQhv5mB5da2-PbL5ItbDbVKR9aUiRPtaVxTnv46Z16hnecAZS_4JH8NIE3GupRNi0/exec";
+
+        // Set default demo deadline to 2 days from now for active countdown testing
+        const futureDate = new Date(Date.now() + 48 * 3600 * 1000).toISOString().slice(0, 16);
 
         const DEFAULT_MOCK_DATA = {
             classes: [
@@ -515,7 +764,19 @@
                     name: "X IPA 1 - Matematika & IPA",
                     pin: "011211",
                     taskStatus: "ADA",
-                    taskDetail: "Kerjakan Latihan Soal Bab 3 Halaman 45-50 di Buku Catatan. Batas pengumpulan Jumat.",
+                    taskTitle: "Latihan Soal Bab 3 & Analisis Gambar Aljabar",
+                    taskDeadlineISO: futureDate,
+                    taskDetail: `
+                        <h2>Instruksi Pengerjaan Tugas:</h2>
+                        <p>Silakan pelajari diagram dan soal di bawah ini sebelum menjawab di buku tugas Anda:</p>
+                        <ul>
+                            <li>Kerjakan Soal No 1 sampai 5 pada Modul Bab 3.</li>
+                            <li>Amati grafik parabola di bawah dan tentukan titik puncaknya.</li>
+                        </ul>
+                        <blockquote>Tugas dikumpulkan sebelum tenggat waktu otomatis habis.</blockquote>
+                        <p><img src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop" alt="Diagram Matematika Aljabar" /></p>
+                    `,
+                    students: ["Ahmad Rizal", "Budi Santoso", "Citra Dewi", "Deni Pratama"],
                     files: [
                         { name: "Modul 1 - Aljabar Linear & Fungsi.pdf", url: "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs/preview" },
                         { name: "Presentasi Pembelajaran IPA Terpadu.pdf", url: "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs/preview" }
@@ -525,12 +786,16 @@
                     name: "XI IPS 2 - Sosiologi & Sejarah",
                     pin: "022322",
                     taskStatus: "TIDAK",
-                    taskDetail: "Tidak ada tugas aktif saat ini. Silakan pelajari materi bab berikutnya.",
+                    taskTitle: "Bebas Tugas",
+                    taskDeadlineISO: "",
+                    taskDetail: "<p>Tidak ada tugas aktif saat ini. Silakan pelajari materi bab berikutnya di folder dokumen.</p>",
+                    students: ["Eka Putri", "Fajar Nugraha", "Gita Gutawa"],
                     files: [
                         { name: "Rangkuman Sejarah Dunia Bab 2.pdf", url: "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs/preview" }
                     ]
                 }
             ],
+            logs: [],
             adminPass: "sarjanasoft",
             appTitle: "EduDrive Viewer"
         };
@@ -539,14 +804,35 @@
             constructor() {
                 this.currentUser = null;
                 this.currentClass = null;
+                this.activeLogIndex = null;
+                this.countdownInterval = null;
+                this.deferredPrompt = null;
                 this.db = this.loadLocalDB();
                 this.initApp();
+            }
+
+            initApp() {
+                if (this.db.appTitle) {
+                    const headerTitle = document.getElementById('app-header-title');
+                    if (headerTitle) headerTitle.innerText = this.db.appTitle;
+                }
+                this.renderClassTable();
+                this.populateTaskClassSelect();
+                this.updateStats();
+                this.renderLogTable();
+                this.setupPWAListener();
+                this.startGlobalCountdownLoop();
             }
 
             loadLocalDB() {
                 const stored = localStorage.getItem('edudrive_db');
                 if (stored) {
-                    try { return JSON.parse(stored); } catch (e) {}
+                    try { 
+                        const parsed = JSON.parse(stored);
+                        if (!parsed.logs) parsed.logs = [];
+                        if (!parsed.classes) parsed.classes = DEFAULT_MOCK_DATA.classes;
+                        return parsed;
+                    } catch (e) {}
                 }
                 localStorage.setItem('edudrive_db', JSON.stringify(DEFAULT_MOCK_DATA));
                 return DEFAULT_MOCK_DATA;
@@ -557,24 +843,99 @@
                 this.syncWithBackend();
             }
 
-            async syncWithBackend() {
-                if (!GAS_URL || GAS_URL.includes("YOUR_GAS")) return;
-                try {
-                    await fetch(GAS_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'syncData', data: this.db })
+            syncWithBackend() {
+                if (!GAS_URL || GAS_URL.includes('AKfycbwQFtzOa0w9FB1h2RabUZY1kEQr9_rjYXJjLQ5bm9428ysejy1Ha7sR7A3S2F23GUEh')) {
+                    return; // Local mock fallback
+                }
+                fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'syncData', data: this.db })
+                }).catch(() => {});
+            }
+
+            // [Poin 3 - Achievable] PWA Web App Support
+            setupPWAListener() {
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    this.deferredPrompt = e;
+                    const installBtn = document.getElementById('pwa-install-badge');
+                    if (installBtn) installBtn.classList.remove('hidden');
+                });
+            }
+
+            installPWA() {
+                if (this.deferredPrompt) {
+                    this.deferredPrompt.prompt();
+                    this.deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            this.showToast('Aplikasi EduDrive berhasil diinstall!', 'success');
+                        }
+                        this.deferredPrompt = null;
                     });
-                } catch (err) {
-                    // Silent failover to isolated local storage mock mode
                 }
             }
 
-            initApp() {
-                this.renderClassTable();
-                this.populateTaskClassSelect();
-                this.updateStats();
+            // [Poin 5 - Time-bound] Real-time Countdown Timer Loop
+            startGlobalCountdownLoop() {
+                if (this.countdownInterval) clearInterval(this.countdownInterval);
+                this.countdownInterval = setInterval(() => {
+                    this.updateTaskCountdownDisplay();
+                }, 1000);
+            }
+
+            updateTaskCountdownDisplay() {
+                if (!this.currentClass || this.currentClass.taskStatus !== 'ADA') return;
+                const deadlineStr = this.currentClass.taskDeadlineISO;
+                const bannerBadge = document.getElementById('task-banner-countdown');
+                const modalBadge = document.getElementById('modal-task-deadline-badge');
+                const uploadForm = document.getElementById('task-upload-form');
+                const lockBanner = document.getElementById('task-locked-banner');
+
+                if (!deadlineStr) {
+                    if (bannerBadge) bannerBadge.innerText = "⏱️ Tanpa Tenggat";
+                    if (modalBadge) modalBadge.innerText = "⏱️ Tanpa Tenggat";
+                    return;
+                }
+
+                const deadlineTime = new Date(deadlineStr).getTime();
+                const now = new Date().getTime();
+                const diff = deadlineTime - now;
+
+                if (diff <= 0) {
+                    // Deadline Expired -> Auto-Lock
+                    const expiredText = "❌ Tenggat Terlewati (Terkunci)";
+                    if (bannerBadge) {
+                        bannerBadge.innerText = expiredText;
+                        bannerBadge.className = "px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-red-100 text-red-800 border border-red-300";
+                    }
+                    if (modalBadge) {
+                        modalBadge.innerText = expiredText;
+                        modalBadge.className = "px-3 py-1 rounded-full text-xs font-mono font-bold bg-red-100 text-red-800 border border-red-300";
+                    }
+                    if (uploadForm) uploadForm.classList.add('hidden');
+                    if (lockBanner) lockBanner.classList.remove('hidden');
+                } else {
+                    // Active Countdown
+                    const hours = Math.floor(diff / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                    const pad = (n) => n.toString().padStart(2, '0');
+                    const timeFormatted = `⏱️ Sisa Waktu: ${pad(hours)}j ${pad(minutes)}m ${pad(seconds)}d`;
+
+                    if (bannerBadge) {
+                        bannerBadge.innerText = timeFormatted;
+                        bannerBadge.className = "px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-amber-200 text-amber-900 border border-amber-300";
+                    }
+                    if (modalBadge) {
+                        modalBadge.innerText = timeFormatted;
+                        modalBadge.className = "px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300";
+                    }
+                    if (uploadForm) uploadForm.classList.remove('hidden');
+                    if (lockBanner) lockBanner.classList.add('hidden');
+                }
             }
 
             navigateTo(viewName) {
@@ -591,71 +952,96 @@
                 }
             }
 
-            switchTab(type) {
+            switchAuthTab(type) {
                 const pinTab = document.getElementById('tab-btn-pin');
                 const adminTab = document.getElementById('tab-btn-admin');
                 const pinForm = document.getElementById('form-pin-container');
                 const adminForm = document.getElementById('form-admin-container');
 
                 if (type === 'pin') {
-                    pinTab.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-citrus-700 shadow-sm";
-                    adminTab.className = "flex-1 py-2 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 transition-all";
+                    pinTab.className = "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all shadow bg-white text-citrus-600";
+                    adminTab.className = "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800";
                     pinForm.classList.remove('hidden');
                     adminForm.classList.add('hidden');
                 } else {
-                    adminTab.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white text-skycyan-700 shadow-sm";
-                    pinTab.className = "flex-1 py-2 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 transition-all";
+                    adminTab.className = "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all shadow bg-white text-skycyan-600";
+                    pinTab.className = "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800";
                     adminForm.classList.remove('hidden');
                     pinForm.classList.add('hidden');
                 }
             }
 
-            togglePinVisibility() {
-                const input = document.getElementById('input-pin');
-                const icon = document.getElementById('pin-eye-icon');
-                if (input.type === 'password') {
-                    input.type = 'text';
-                    icon.className = 'fa-solid fa-eye-slash';
+            onPinInputChanged() {
+                const pin = document.getElementById('input-pin').value.trim();
+                const selectWrapper = document.getElementById('student-select-wrapper');
+                const select = document.getElementById('input-student-name');
+
+                const foundClass = this.db.classes.find(c => c.pin === pin);
+                if (foundClass && foundClass.students && foundClass.students.length > 0) {
+                    select.innerHTML = '<option value="">-- Pilih Nama Anda --</option>';
+                    foundClass.students.forEach(name => {
+                        const opt = document.createElement('option');
+                        opt.value = name;
+                        opt.innerText = name;
+                        select.appendChild(opt);
+                    });
+                    selectWrapper.classList.remove('hidden');
                 } else {
-                    input.type = 'password';
-                    icon.className = 'fa-solid fa-eye';
+                    selectWrapper.classList.add('hidden');
+                }
+            }
+
+            togglePinVisibility() {
+                const pinInput = document.getElementById('input-pin');
+                const eyeIcon = document.getElementById('pin-eye-icon');
+                if (pinInput.type === 'password') {
+                    pinInput.type = 'text';
+                    eyeIcon.className = "fa-solid fa-eye-slash";
+                } else {
+                    pinInput.type = 'password';
+                    eyeIcon.className = "fa-solid fa-eye";
                 }
             }
 
             loginWithPin() {
                 const pinInput = document.getElementById('input-pin').value.trim();
+                const studentName = document.getElementById('input-student-name').value;
+
                 if (!pinInput) {
-                    this.showToast('Masukkan Kode PIN Akses!', 'error');
+                    this.showToast('Masukkan Kode PIN Akses Kelas!', 'error');
                     return;
                 }
 
                 const foundClass = this.db.classes.find(c => c.pin === pinInput);
                 if (foundClass) {
+                    if (foundClass.students && foundClass.students.length > 0 && !studentName) {
+                        this.showToast('Silakan pilih Nama Anda dari daftar terdata!', 'error');
+                        return;
+                    }
+
+                    const displayName = studentName || "Siswa Terdaftar";
                     this.currentClass = foundClass;
-                    this.currentUser = { type: 'student', name: foundClass.name };
-                    this.showToast(`Selamat Datang di ${foundClass.name}!`, 'success');
+                    this.currentUser = { type: 'student', name: displayName, pin: pinInput, className: foundClass.name };
+                    
+                    this.showToast(`Selamat Datang, ${displayName}!`, 'success');
                     this.renderStudentDashboard(foundClass);
-                    this.updateUserBadge(foundClass.name, 'Siswa');
+                    this.updateUserBadge(displayName, foundClass.name);
                     this.navigateTo('class');
                 } else {
                     this.showToast('Kode PIN Akses tidak valid!', 'error');
                 }
             }
 
-            quickAdminLogin() {
-                document.getElementById('input-admin-user').value = 'Admin';
-                document.getElementById('input-admin-pass').value = 'sarjanasoft';
-                this.loginAdmin();
-            }
-
             loginAdmin() {
                 const user = document.getElementById('input-admin-user').value.trim();
                 const pass = document.getElementById('input-admin-pass').value.trim();
 
-                if (user.toLowerCase() === 'admin' && pass === this.db.adminPass) {
+                const validPass = this.db.adminPass || "sarjanasoft";
+                if (user.toLowerCase() === 'admin' && pass === validPass) {
                     this.currentUser = { type: 'admin', name: 'Administrator' };
-                    this.showToast('Berhasil Masuk sebagai Admin!', 'success');
-                    this.updateUserBadge('Administrator', 'Admin');
+                    this.updateUserBadge('Administrator', 'Admin Panel');
+                    this.showToast('Login Admin Berhasil!', 'success');
+                    this.switchAdminTab('classes');
                     this.navigateTo('admin');
                 } else {
                     this.showToast('Username / Password Admin salah!', 'error');
@@ -665,77 +1051,82 @@
             logout() {
                 this.currentUser = null;
                 this.currentClass = null;
-                document.getElementById('user-badge').classList.add('hidden');
-                document.getElementById('user-badge').classList.remove('flex');
                 document.getElementById('input-pin').value = '';
+                document.getElementById('input-student-name').value = '';
+                document.getElementById('student-select-wrapper').classList.add('hidden');
+                document.getElementById('user-badge').classList.add('hidden');
                 this.navigateTo('landing');
-                this.showToast('Anda telah keluar.', 'info');
+                this.showToast('Sesi telah berakhir.', 'info');
             }
 
-            updateUserBadge(name, role) {
+            updateUserBadge(name, subtext) {
                 const badge = document.getElementById('user-badge');
                 const badgeName = document.getElementById('user-badge-name');
-                badgeName.innerText = `${role}: ${name}`;
+                badgeName.innerText = `${name} (${subtext})`;
                 badge.classList.remove('hidden');
                 badge.classList.add('flex');
             }
 
-            renderStudentDashboard(classData) {
-                document.getElementById('class-title-text').innerText = classData.name;
-                document.getElementById('class-pin-badge').innerText = `PIN: ${classData.pin}`;
-                document.getElementById('file-count-badge').innerText = `${classData.files.length} Dokumen`;
+            renderStudentDashboard(foundClass) {
+                document.getElementById('class-title-text').innerText = foundClass.name;
+                document.getElementById('class-pin-badge').innerText = `PIN: ${foundClass.pin}`;
 
-                // Task Banner Setup
                 const banner = document.getElementById('task-notification-banner');
+                const statusTitle = document.getElementById('task-banner-status');
+                const statusSummary = document.getElementById('task-banner-summary');
                 const iconBg = document.getElementById('task-icon-bg');
                 const icon = document.getElementById('task-icon');
-                const statusTxt = document.getElementById('task-banner-status');
-                const detailTxt = document.getElementById('task-banner-detail');
+                const btnTask = document.getElementById('btn-open-task-detail');
 
-                if (classData.taskStatus === 'ADA') {
-                    banner.className = "mb-8 rounded-2xl p-4 shadow-sm border flex items-center gap-4 transition-all bg-amber-50 border-amber-200 text-amber-900";
-                    iconBg.className = "w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 text-lg shadow-md";
+                if (foundClass.taskStatus === 'ADA') {
+                    banner.className = "mb-8 rounded-2xl p-5 shadow-sm border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all bg-amber-50 border-amber-200 text-amber-900";
+                    iconBg.className = "w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 text-xl shadow-md";
                     icon.className = "fa-solid fa-bullhorn";
-                    statusTxt.innerText = "📢 Ada Tugas Aktif Saat Ini:";
-                    detailTxt.innerText = classData.taskDetail || "Silakan periksa instruksi tugas yang diberikan.";
+                    statusTitle.innerText = "📢 Ada Tugas Aktif Kelas:";
+                    statusSummary.innerText = foundClass.taskTitle || "Siswa diminta membaca dan menguji soal yang diberikan pengajar.";
+                    btnTask.classList.remove('hidden');
+                    this.updateTaskCountdownDisplay();
                 } else {
-                    banner.className = "mb-8 rounded-2xl p-4 shadow-sm border flex items-center gap-4 transition-all bg-emerald-50 border-emerald-200 text-emerald-900";
-                    iconBg.className = "w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 text-lg shadow-md";
+                    banner.className = "mb-8 rounded-2xl p-5 shadow-sm border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all bg-emerald-50 border-emerald-200 text-emerald-900";
+                    iconBg.className = "w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 text-xl shadow-md";
                     icon.className = "fa-solid fa-circle-check";
-                    statusTxt.innerText = "✅ Tidak Ada Tugas Saat Ini";
-                    detailTxt.innerText = "Tidak ada lembar tugas baru. Anda dapat fokus membaca modul di bawah.";
+                    statusTitle.innerText = "✅ Tidak Ada Tugas Saat Ini";
+                    statusSummary.innerText = "Tidak ada tugas aktif saat ini. Silakan pelajari materi bab berikutnya di folder dokumen.";
+                    btnTask.classList.add('hidden');
                 }
 
-                // Render File Grid
                 const grid = document.getElementById('files-grid-container');
                 grid.innerHTML = '';
 
-                if (classData.files.length === 0) {
+                const files = foundClass.files || [];
+                document.getElementById('file-count-badge').innerText = `${files.length} Dokumen`;
+
+                if (files.length === 0) {
                     grid.innerHTML = `
-                        <div class="col-span-full bg-white p-8 rounded-2xl text-center border border-slate-200 text-slate-400">
-                            <i class="fa-solid fa-folder-open text-4xl mb-2"></i>
-                            <p class="text-xs font-semibold">Belum ada file dokumen di folder kelas ini.</p>
+                        <div class="col-span-full text-center py-12 bg-white rounded-2xl border border-dashed border-slate-200">
+                            <i class="fa-regular fa-folder-open text-4xl text-slate-300 mb-2"></i>
+                            <p class="text-xs text-slate-500">Belum ada dokumen yang diunggah untuk kelas ini.</p>
                         </div>
                     `;
                     return;
                 }
 
-                classData.files.forEach((file, index) => {
+                files.forEach(file => {
                     const card = document.createElement('div');
-                    card.className = "bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4 group";
+                    card.className = "bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4 group";
                     card.innerHTML = `
                         <div class="flex items-start gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-citrus-100 text-citrus-600 flex items-center justify-center font-bold text-lg shrink-0 group-hover:scale-105 transition-transform">
+                            <div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-105 transition-transform">
                                 <i class="fa-solid fa-file-pdf"></i>
                             </div>
-                            <div class="overflow-hidden">
-                                <h4 class="font-bold text-slate-800 text-sm truncate" title="${file.name}">${file.name}</h4>
-                                <span class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-block mt-1">
-                                    <i class="fa-solid fa-eye mr-0.5"></i> Read Only
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm leading-snug line-clamp-2">${file.name}</h4>
+                                <span class="inline-block mt-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                    <i class="fa-solid fa-lock mr-1"></i> Mode Protected Reader
                                 </span>
                             </div>
                         </div>
-                        <button onclick="app.openDocViewer('${file.name}', '${file.url}')" class="w-full py-2.5 bg-slate-900 hover:bg-citrus-600 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-2">
+                        <button onclick="app.openDocViewer('${file.name.replace(/'/g, "\\'")}', '${file.url}')" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2">
                             <i class="fa-solid fa-book-open"></i>
                             <span>Buka & Baca Dokumen</span>
                         </button>
@@ -744,96 +1135,312 @@
                 });
             }
 
+            openTaskModal() {
+                if (!this.currentClass) return;
+                const c = this.currentClass;
+
+                document.getElementById('modal-task-header-sub').innerText = c.name;
+                document.getElementById('modal-task-title').innerText = c.taskTitle || "Lembar Instruksi Tugas Kelas";
+                document.getElementById('modal-task-body-content').innerHTML = c.taskDetail || "<p>Belum ada rincian tugas yang diunggah.</p>";
+                document.getElementById('modal-student-display-name').innerText = this.currentUser ? this.currentUser.name : 'Siswa';
+
+                document.getElementById('task-modal').classList.remove('hidden');
+                this.updateTaskCountdownDisplay();
+
+                // Log task view action
+                const newLog = {
+                    time: new Date().toLocaleString('id-ID'),
+                    studentName: this.currentUser ? this.currentUser.name : 'Siswa',
+                    className: c.name,
+                    docTitle: `[TUGAS] ${c.taskTitle || 'Tugas Kelas'}`,
+                    scrollStatus: 'OPENED',
+                    submissionUrl: '-',
+                    finishTime: new Date().toLocaleTimeString('id-ID')
+                };
+                this.db.logs.unshift(newLog);
+                this.saveLocalDB();
+                this.renderLogTable();
+            }
+
+            closeTaskModal() {
+                document.getElementById('task-modal').classList.add('hidden');
+            }
+
+            // [Poin 1 - Specific] Submit Task Answer Form
+            submitStudentTask() {
+                const submissionUrl = document.getElementById('input-submission-url').value.trim();
+                const note = document.getElementById('input-submission-note').value.trim();
+
+                if (!submissionUrl) {
+                    this.showToast('Masukkan link file drive atau tautan jawaban Anda!', 'error');
+                    return;
+                }
+
+                const newLog = {
+                    time: new Date().toLocaleString('id-ID'),
+                    studentName: this.currentUser ? this.currentUser.name : 'Siswa',
+                    className: this.currentClass ? this.currentClass.name : 'Kelas',
+                    docTitle: `[KIRIM JAWABAN] ${this.currentClass.taskTitle || 'Tugas'}`,
+                    scrollStatus: 'SUBMITTED',
+                    submissionUrl: submissionUrl + (note ? ` (Note: ${note})` : ''),
+                    finishTime: new Date().toLocaleTimeString('id-ID')
+                };
+
+                this.db.logs.unshift(newLog);
+                this.saveLocalDB();
+                this.renderLogTable();
+                this.showToast('Jawaban Tugas Berhasil Terkirim!', 'success');
+                document.getElementById('input-submission-url').value = '';
+                document.getElementById('input-submission-note').value = '';
+                this.closeTaskModal();
+            }
+
+            // [Poin 1 - Specific] Protected Viewer + Dynamic Security Watermark Generator
             openDocViewer(title, url) {
                 document.getElementById('modal-doc-title').innerText = title;
-                // Format Google Drive preview link safely
                 let embedUrl = url;
                 if (url.includes('drive.google.com') && !url.includes('/preview')) {
                     embedUrl = url.replace(/\/view.*$/, '/preview');
                 }
                 document.getElementById('doc-iframe').src = embedUrl;
+
+                // Render Dynamic Security Watermark Grid
+                const watermarkContainer = document.getElementById('doc-watermark-overlay');
+                watermarkContainer.innerHTML = '';
+                const studentInfo = this.currentUser ? `${this.currentUser.name} | PIN: ${this.currentUser.pin}` : 'PROTECTED DOCUMENT';
+                const timestamp = new Date().toLocaleDateString('id-ID');
+
+                for (let i = 0; i < 12; i++) {
+                    const span = document.createElement('span');
+                    span.className = "watermark-text";
+                    span.innerText = `🔒 ${studentInfo} - ${timestamp}`;
+                    watermarkContainer.appendChild(span);
+                }
+
+                const newLog = {
+                    time: new Date().toLocaleString('id-ID'),
+                    studentName: this.currentUser ? this.currentUser.name : 'Siswa',
+                    className: this.currentClass ? this.currentClass.name : 'Kelas',
+                    docTitle: title,
+                    scrollStatus: 'BELUM',
+                    submissionUrl: '-',
+                    finishTime: '-'
+                };
+                this.db.logs.unshift(newLog);
+                this.activeLogIndex = 0;
+                this.saveLocalDB();
+                this.renderLogTable();
+
+                document.getElementById('scroll-status-badge').className = "text-[10px] text-amber-400 font-medium";
+                document.getElementById('scroll-status-badge').innerText = "⏳ Membaca... (Watermark Terpasang)";
+                document.getElementById('scroll-progress-text').innerText = "Progres Membaca: 0%";
+                document.getElementById('scroll-progress-bar').style.width = "0%";
+
                 document.getElementById('doc-modal').classList.remove('hidden');
-                this.showToast('Memuat dokumen terproteksi...', 'info');
+                this.showToast('Memuat dokumen + Watermark Dinamis S.M.A.R.T...', 'info');
             }
 
             closeDocModal() {
                 document.getElementById('doc-modal').classList.add('hidden');
                 document.getElementById('doc-iframe').src = '';
+                this.activeLogIndex = null;
+            }
+
+            handleViewerScroll(container) {
+                const scrollTop = container.scrollTop;
+                const scrollHeight = container.scrollHeight - container.clientHeight;
+                if (scrollHeight <= 0) return;
+
+                const progress = Math.min(100, Math.round((scrollTop / scrollHeight) * 100));
+                document.getElementById('scroll-progress-text').innerText = `Progres Membaca: ${progress}%`;
+                document.getElementById('scroll-progress-bar').style.width = `${progress}%`;
+
+                if (progress >= 90 && this.activeLogIndex !== null && this.db.logs[this.activeLogIndex]) {
+                    if (this.db.logs[this.activeLogIndex].scrollStatus !== 'SELESAI') {
+                        this.db.logs[this.activeLogIndex].scrollStatus = 'SELESAI';
+                        this.db.logs[this.activeLogIndex].finishTime = new Date().toLocaleTimeString('id-ID');
+                        this.saveLocalDB();
+                        this.renderLogTable();
+
+                        document.getElementById('scroll-status-badge').className = "text-[10px] text-emerald-400 font-bold";
+                        document.getElementById('scroll-status-badge').innerText = "✅ Selesai Membaca (Scroll Full)";
+                        this.showToast('Status dibaca tuntas tercatat!', 'success');
+                    }
+                }
             }
 
             switchAdminTab(tabName) {
                 document.getElementById('admin-panel-classes').classList.add('hidden');
+                document.getElementById('admin-panel-logs').classList.add('hidden');
                 document.getElementById('admin-panel-tasks').classList.add('hidden');
                 document.getElementById('admin-panel-config').classList.add('hidden');
 
                 document.getElementById('admin-nav-classes').className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-white hover:bg-slate-800";
+                document.getElementById('admin-nav-logs').className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-white hover:bg-slate-800";
                 document.getElementById('admin-nav-tasks').className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-white hover:bg-slate-800";
                 document.getElementById('admin-nav-config').className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-white hover:bg-slate-800";
 
                 if (tabName === 'classes') {
                     document.getElementById('admin-panel-classes').classList.remove('hidden');
                     document.getElementById('admin-nav-classes').className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-white bg-citrus-600";
+                    this.renderClassTable();
+                } else if (tabName === 'logs') {
+                    document.getElementById('admin-panel-logs').classList.remove('hidden');
+                    document.getElementById('admin-nav-logs').className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-white bg-citrus-600";
+                    this.renderLogTable();
                 } else if (tabName === 'tasks') {
                     document.getElementById('admin-panel-tasks').classList.remove('hidden');
                     document.getElementById('admin-nav-tasks').className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-white bg-citrus-600";
+                    this.onTaskClassSelected();
                 } else if (tabName === 'config') {
                     document.getElementById('admin-panel-config').classList.remove('hidden');
                     document.getElementById('admin-nav-config').className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-white bg-citrus-600";
                 }
             }
 
+            // RICH TEXT EDITOR HELPERS
+            execEditorCommand(command, value = null) {
+                document.execCommand(command, false, value);
+            }
+
+            insertImageUrlPrompt() {
+                const url = prompt("Masukkan URL Gambar yang ingin disisipkan:", "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop");
+                if (url) {
+                    this.execEditorCommand('insertImage', url);
+                }
+            }
+
+            applyTaskTemplate(type) {
+                const editor = document.getElementById('editor-task-detail');
+                if (type === 'essay_image') {
+                    document.getElementById('task-input-title').value = "Latihan Soal Essay & Analisis Gambar Bab 3";
+                    editor.innerHTML = `
+                        <h2>Soal & Petunjuk Gambar:</h2>
+                        <p>1. Perhatikan gambar di bawah ini dengan cermat:</p>
+                        <p><img src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop" alt="Soal Gambar" /></p>
+                        <p>2. Tuliskan analisis hubungan antar variabel berdasarkan gambar di atas!</p>
+                        <p>3. Unggah file jawaban melalui form pengiriman di bawah.</p>
+                    `;
+                } else if (type === 'multiple_choice') {
+                    document.getElementById('task-input-title').value = "Tugas Mandiri Pembelajaran Aktif";
+                    editor.innerHTML = `
+                        <h2>Petunjuk Latihan Mandiri:</h2>
+                        <ul>
+                            <li>Buka Modul 1 pada folder dokumen kelas.</li>
+                            <li>Pelajari Bab 2 Halaman 15 - 25.</li>
+                            <li>Kerjakan 10 soal pilihan ganda di halaman 26.</li>
+                        </ul>
+                    `;
+                } else if (type === 'project') {
+                    document.getElementById('task-input-title').value = "Proyek Kelompok & Mini Presentasi";
+                    editor.innerHTML = `
+                        <h2>Tugas Proyek Kelompok:</h2>
+                        <p>Buat kelompok berisi 3-4 siswa untuk menyusun materi presentasi ringkas.</p>
+                        <blockquote>Format berkas PDF diunggah ke perwakilan ketua kelas.</blockquote>
+                    `;
+                }
+                this.showToast('Template tugas disisipkan!', 'info');
+            }
+
+            onTaskClassSelected() {
+                const select = document.getElementById('task-select-class');
+                if (!select || select.value === "") return;
+                const idx = parseInt(select.value);
+                const c = this.db.classes[idx];
+                if (c) {
+                    document.getElementById('task-select-status').value = c.taskStatus || 'ADA';
+                    document.getElementById('task-input-title').value = c.taskTitle || '';
+                    document.getElementById('task-input-deadline-picker').value = c.taskDeadlineISO || '';
+                    document.getElementById('editor-task-detail').innerHTML = c.taskDetail || '';
+                }
+            }
+
+            saveTaskSetting(e) {
+                e.preventDefault();
+                const classIdx = parseInt(document.getElementById('task-select-class').value);
+                const status = document.getElementById('task-select-status').value;
+                const title = document.getElementById('task-input-title').value.trim();
+                const deadlineISO = document.getElementById('task-input-deadline-picker').value;
+                const detailHtml = document.getElementById('editor-task-detail').innerHTML;
+
+                if (this.db.classes[classIdx]) {
+                    this.db.classes[classIdx].taskStatus = status;
+                    this.db.classes[classIdx].taskTitle = title;
+                    this.db.classes[classIdx].taskDeadlineISO = deadlineISO;
+                    this.db.classes[classIdx].taskDetail = detailHtml;
+                    this.saveLocalDB();
+                    this.renderClassTable();
+                    this.showToast('Tugas & Tenggat Waktu Terbit!', 'success');
+                }
+            }
+
             renderClassTable() {
-                const tbody = document.getElementById('table-class-body');
+                const tbody = document.getElementById('table-classes-body');
+                if (!tbody) return;
                 tbody.innerHTML = '';
 
-                this.db.classes.forEach((c, index) => {
+                this.db.classes.forEach((c, idx) => {
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-slate-50";
                     tr.innerHTML = `
                         <td class="p-3 font-bold text-slate-800">${c.name}</td>
-                        <td class="p-3 font-mono font-bold text-amber-600">${c.pin}</td>
-                        <td class="p-3">${c.files.length} File</td>
+                        <td class="p-3 font-mono font-bold text-citrus-600">${c.pin}</td>
+                        <td class="p-3 text-slate-600">${(c.students || []).length} Siswa</td>
+                        <td class="p-3 text-slate-600">${(c.files || []).length} File</td>
                         <td class="p-3">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${c.taskStatus === 'ADA' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}">
-                                ${c.taskStatus === 'ADA' ? 'Ada Tugas' : 'Bebas Tugas'}
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${c.taskStatus === 'ADA' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
+                                ${c.taskStatus === 'ADA' ? '📢 Ada Tugas' : '✅ Bebas Tugas'}
                             </span>
                         </td>
-                        <td class="p-3 text-center space-x-2">
-                            <button onclick="app.editClass(${index})" class="p-1.5 bg-skycyan-100 text-skycyan-700 hover:bg-skycyan-200 rounded-lg" title="Edit">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                            </button>
-                            <button onclick="app.deleteClass(${index})" class="p-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg" title="Hapus">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
+                        <td class="p-3 text-right space-x-1">
+                            <button onclick="app.openClassModal(${idx})" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="app.deleteClass(${idx})" class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"><i class="fa-solid fa-trash-can"></i></button>
                         </td>
                     `;
                     tbody.appendChild(tr);
                 });
             }
 
-            populateTaskClassSelect() {
-                const select = document.getElementById('task-select-class');
-                select.innerHTML = '';
-                this.db.classes.forEach((c, index) => {
-                    const opt = document.createElement('option');
-                    opt.value = index;
-                    opt.innerText = c.name;
-                    select.appendChild(opt);
-                });
+            renderLogTable() {
+                const tbody = document.getElementById('table-log-body');
+                if (!tbody) return;
+                tbody.innerHTML = '';
 
-                if (this.db.classes.length > 0) {
-                    const first = this.db.classes[0];
-                    document.getElementById('task-select-status').value = first.taskStatus || 'TIDAK';
-                    document.getElementById('task-input-detail').value = first.taskDetail || '';
+                if (!this.db.logs || this.db.logs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Belum ada aktivitas presensi atau kiriman tugas siswa.</td></tr>`;
+                    return;
                 }
 
-                select.onchange = (e) => {
-                    const cls = this.db.classes[e.target.value];
-                    if (cls) {
-                        document.getElementById('task-select-status').value = cls.taskStatus || 'TIDAK';
-                        document.getElementById('task-input-detail').value = cls.taskDetail || '';
-                    }
-                };
+                this.db.logs.forEach(log => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50";
+                    const isSubmitted = log.scrollStatus === 'SUBMITTED';
+                    const isFinished = log.scrollStatus === 'SELESAI';
+                    const hasUrl = log.submissionUrl && log.submissionUrl !== '-';
+
+                    tr.innerHTML = `
+                        <td class="p-3 font-mono text-slate-500">${log.time}</td>
+                        <td class="p-3 font-bold text-slate-800">${log.studentName}</td>
+                        <td class="p-3">${log.className}</td>
+                        <td class="p-3 text-slate-700 truncate max-w-[200px]" title="${log.docTitle}">${log.docTitle}</td>
+                        <td class="p-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isSubmitted ? 'bg-blue-100 text-blue-800' : isFinished ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                                ${isSubmitted ? '📥 Jawaban Dikirim' : isFinished ? '✅ Selesai Membaca' : '⏳ Hanya Login / Membuka'}
+                            </span>
+                        </td>
+                        <td class="p-3 font-mono text-slate-500">
+                            ${hasUrl ? `<a href="${log.submissionUrl.split(' ')[0]}" target="_blank" class="text-blue-600 underline font-bold"><i class="fa-solid fa-arrow-up-right-from-square mr-1"></i> Lihat Berkas</a>` : '-'}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            clearLogs() {
+                this.db.logs = [];
+                this.saveLocalDB();
+                this.renderLogTable();
+                this.showToast('Log presensi dibersihkan.', 'info');
             }
 
             openClassModal(index = -1) {
@@ -843,12 +1450,14 @@
                     document.getElementById('class-modal-title').innerText = "Edit Kelas";
                     document.getElementById('class-form-name').value = c.name;
                     document.getElementById('class-form-pin').value = c.pin;
-                    const filesStr = c.files.map(f => `${f.url} | ${f.name}`).join('\n');
+                    document.getElementById('class-form-students').value = (c.students || []).join('\n');
+                    const filesStr = (c.files || []).map(f => `${f.url} | ${f.name}`).join('\n');
                     document.getElementById('class-form-files').value = filesStr;
                 } else {
                     document.getElementById('class-modal-title').innerText = "Tambah Kelas Baru";
                     document.getElementById('class-form-name').value = '';
                     document.getElementById('class-form-pin').value = '';
+                    document.getElementById('class-form-students').value = '';
                     document.getElementById('class-form-files').value = '';
                 }
                 document.getElementById('class-modal').classList.remove('hidden');
@@ -863,8 +1472,10 @@
                 const index = parseInt(document.getElementById('class-form-index').value);
                 const name = document.getElementById('class-form-name').value.trim();
                 const pin = document.getElementById('class-form-pin').value.trim();
+                const studentsRaw = document.getElementById('class-form-students').value.trim();
                 const filesRaw = document.getElementById('class-form-files').value.trim();
 
+                const students = studentsRaw.split('\n').map(s => s.trim()).filter(s => s !== '');
                 const files = filesRaw.split('\n').filter(line => line.trim() !== '').map(line => {
                     const parts = line.split('|');
                     return {
@@ -876,6 +1487,7 @@
                 if (index >= 0) {
                     this.db.classes[index].name = name;
                     this.db.classes[index].pin = pin;
+                    this.db.classes[index].students = students;
                     this.db.classes[index].files = files;
                     this.showToast('Kelas berhasil diperbarui!', 'success');
                 } else {
@@ -883,7 +1495,10 @@
                         name: name,
                         pin: pin,
                         taskStatus: 'TIDAK',
-                        taskDetail: '',
+                        taskTitle: 'Bebas Tugas',
+                        taskDeadlineISO: '',
+                        taskDetail: '<p>Tidak ada tugas aktif saat ini.</p>',
+                        students: students,
                         files: files
                     });
                     this.showToast('Kelas baru ditambahkan!', 'success');
@@ -896,94 +1511,77 @@
                 this.closeClassModal();
             }
 
-            editClass(index) {
-                this.openClassModal(index);
-            }
-
             deleteClass(index) {
-                if (confirm('Apakah Anda yakin ingin menghapus kelas ini?')) {
-                    this.db.classes.splice(index, 1);
-                    this.saveLocalDB();
-                    this.renderClassTable();
-                    this.populateTaskClassSelect();
-                    this.updateStats();
-                    this.showToast('Kelas berhasil dihapus.', 'info');
-                }
+                this.db.classes.splice(index, 1);
+                this.saveLocalDB();
+                this.renderClassTable();
+                this.populateTaskClassSelect();
+                this.updateStats();
+                this.showToast('Kelas dihapus.', 'info');
             }
 
-            saveTaskSetting(e) {
-                e.preventDefault();
-                const index = document.getElementById('task-select-class').value;
-                const status = document.getElementById('task-select-status').value;
-                const detail = document.getElementById('task-input-detail').value.trim();
-
-                if (this.db.classes[index]) {
-                    this.db.classes[index].taskStatus = status;
-                    this.db.classes[index].taskDetail = detail;
-                    this.saveLocalDB();
-                    this.renderClassTable();
-                    this.updateStats();
-                    this.showToast('Status tugas kelas berhasil disimpan!', 'success');
-                }
+            populateTaskClassSelect() {
+                const select = document.getElementById('task-select-class');
+                if (!select) return;
+                select.innerHTML = '';
+                this.db.classes.forEach((c, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = idx;
+                    opt.innerText = c.name;
+                    select.appendChild(opt);
+                });
             }
 
             saveConfig(e) {
                 e.preventDefault();
-                const newPass = document.getElementById('config-admin-pass').value.trim();
-                if (newPass) this.db.adminPass = newPass;
+                const title = document.getElementById('config-app-title').value.trim();
+                const pass = document.getElementById('config-admin-pass').value.trim();
+
+                this.db.appTitle = title;
+                this.db.adminPass = pass;
+                document.getElementById('app-header-title').innerText = title;
                 this.saveLocalDB();
-                this.showToast('Konfigurasi berhasil disimpan!', 'success');
+                this.showToast('Konfigurasi aplikasi tersimpan!', 'success');
             }
 
             updateStats() {
-                document.getElementById('stat-class-count').innerText = this.db.classes.length;
-                let totalFiles = 0;
-                let activeTasks = 0;
+                let fileCount = 0;
+                let studentCount = 0;
                 this.db.classes.forEach(c => {
-                    totalFiles += c.files.length;
-                    if (c.taskStatus === 'ADA') activeTasks++;
+                    fileCount += (c.files || []).length;
+                    studentCount += (c.students || []).length;
                 });
-                document.getElementById('stat-file-count').innerText = totalFiles;
-                document.getElementById('stat-active-tasks').innerText = activeTasks;
+                document.getElementById('stat-class-count').innerText = this.db.classes.length;
+                document.getElementById('stat-file-count').innerText = fileCount;
+                document.getElementById('stat-student-count').innerText = studentCount;
             }
 
             showToast(message, type = 'info') {
                 const container = document.getElementById('toast-container');
                 const toast = document.createElement('div');
-                
-                let bgClass = "bg-slate-800 text-white";
-                let icon = "fa-circle-info";
-                if (type === 'success') {
-                    bgClass = "bg-emerald-600 text-white";
-                    icon = "fa-circle-check";
-                } else if (type === 'error') {
-                    bgClass = "bg-red-600 text-white";
-                    icon = "fa-triangle-exclamation";
-                }
-
-                toast.className = `${bgClass} p-3.5 rounded-xl shadow-xl flex items-center gap-3 text-xs font-semibold pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0 border border-white/10`;
-                toast.innerHTML = `
-                    <i class="fa-solid ${icon} text-base"></i>
-                    <span class="flex-1">${message}</span>
-                `;
-
+                const colors = {
+                    success: 'bg-emerald-600 text-white',
+                    error: 'bg-red-600 text-white',
+                    info: 'bg-slate-800 text-white'
+                };
+                toast.className = `p-3 rounded-xl shadow-xl text-xs font-semibold flex items-center justify-between gap-3 pointer-events-auto transition-all transform translate-y-2 opacity-0 ${colors[type] || colors.info}`;
+                toast.innerHTML = `<span>${message}</span>`;
                 container.appendChild(toast);
+
                 setTimeout(() => {
                     toast.classList.remove('translate-y-2', 'opacity-0');
                 }, 10);
 
                 setTimeout(() => {
-                    toast.classList.add('opacity-0', 'translate-y-2');
+                    toast.classList.add('opacity-0');
                     setTimeout(() => toast.remove(), 300);
                 }, 3000);
             }
         }
 
-        // Initialize Application
-        let app;
-        window.addEventListener('DOMContentLoaded', () => {
-            app = new AppController();
-        });
+        window.onload = () => {
+            window.app = new AppController();
+        };
     </script>
 </body>
 </html>
